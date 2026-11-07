@@ -656,8 +656,20 @@ function hurtFace(o){var t=o.stache?1:(o.face===docFace?2:(o.face===vailFace?3:0
   c.fillStyle='#7fd6ff';fillQ(c,P,.2,.2,.26,.4);
   if(t===1){c.fillStyle='#3a2210';fillQ(c,P,.16,.0,.5,.1);fillQ(c,P,.5,.0,.84,.1);}
 });}
-var AUD={'MJ_B64': 'audio/maklaby_chase.mp3', 'MM_B64': 'audio/mimic_chase.mp3', 'AN_B64': 'audio/annihilator_chase.mp3', 'FL_B64': 'audio/flee_chase.mp3', 'SUR_B64': 'audio/vampire_chase.mp3', 'LB_B64': 'audio/lobby.mp3', 'LMD_B64': 'audio/lms_default.mp3', 'LMB_B64': 'audio/lms_batya_vs_anni.mp3', 'LMG_B64': 'audio/lms_maklaby_vs_gdg.mp3', 'GL_B64': 'audio/glit_chase.mp3'};
-function audFetch(k,ok,err){try{fetch(AUD[k]).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}).then(ok).catch(function(){if(err)err();});}catch(e){if(err)err();}}
+var AUD={'MJ_B64': 'audio/maklaby_chase.mp3', 'MM_B64': 'audio/mimic_chase.mp3', 'AN_B64': 'audio/annihilator_chase.mp3', 'FL_B64': 'audio/flee_chase.mp3', 'SUR_B64': 'audio/vampire_chase.mp3', 'LB_B64': 'audio/lobby.mp3', 'LMD_B64': 'audio/lms_default.mp3', 'LMB_B64': 'audio/lms_batya_vs_anni.mp3', 'LMG_B64': 'audio/lms_maklaby_vs_gdg.mp3', 'GL_B64': 'audio/cool_update.mp3'};
+var AUD_ALT={GL_B64:['cool_update.mp3','audio/cool_update.MP3','audio/glit_chase.mp3']};
+function audFetch(k,ok,err){
+  var urls=[AUD[k]].concat(AUD_ALT[k]||[]),i=0;
+  function next(){
+    if(i>=urls.length){
+      try{console.warn('Не найден звук '+k+': '+urls.join(' | '));if(AUD_ALT[k]&&typeof mpMsg==='function')mpMsg('🔇 Не найден '+urls[0]+' — положи файл в папку audio рядом с index.html (игру открывай по ссылке/через сервер, не двойным кликом)',6);}catch(e){}
+      if(err)err();return;
+    }
+    var u=urls[i++];
+    try{fetch(u).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}).then(ok).catch(next);}catch(e){next();}
+  }
+  next();
+}
 var LM=(function(){var a=null,vol=0;
   function mk(){
     if(a)return;
@@ -1006,7 +1018,7 @@ var CH={
     o:{skin:0x050505,shirt:0xd400d4,pants:0x050505,glit:true},sp:6.5,amp:.6,bob:.08,
     ab:[
       {id:'gsl',name:'Теневой слайд',cd:1.6,icon:'gsl',txt:'кд 1.6 с · удар правой рукой, 24 урона, +23 ТП за каждое попадание'},
-      {id:'gleg',name:'M0Я H0Г4!.¡%!',cd:23,icon:'gleg',txt:'кд 23 с · тратит 20 ТП. 2 с заводит двигатель, затем слайд 6 с туда, куда смотрит камера (скорость ×1,6). Попал: 40 урона, ломает выжившего об пол (рэгдолл), у выжившего 1 с на побег. Стена или конец таймера: стан 1 с'},
+      {id:'gleg',name:'M0Я H0Г4!.¡%!',cd:23,icon:'gleg',txt:'кд 23 с · тратит 20 ТП. 2 с заводит двигатель, затем слайд 6 с туда, куда смотрит камера (скорость ×1,6). Попал: 40 урона, ломает выжившего об пол (рэгдолл), у выжившего 4 с на то, чтобы встать и убежать (ты в стане). Стена или конец таймера: стан 1 с'},
       {id:'gmeg',name:'M3ГА YДА4АР!',cd:15,icon:'gmeg',txt:'кд 15 с · нужно больше 50 ТП, тратит 20 ТП. Рука становится глич-кувалдой: 2 удара по 30 урона'},
       {id:'gmark',name:'T3LNПООО0PT!',cd:10,icon:'gmark',txt:'кд 10 с · тратит 20 ТП. Ставит метку (до 3, одноразовые). Выжившим метка не видна'},
       {id:'gtp',name:'HAСT0RЗИЙ T3ЛEПО000РТ!',cd:10,icon:'gtp',txt:'кд 10 с · тратит 20 ТП. Выбор метки, куда телепортироваться'}]}
@@ -2931,7 +2943,8 @@ function glTick(dt){
     hurt(tg,40);
     if(!tg.remote&&!tg.prox){var q=collide(tg.x+Math.sin(pRot)*6,tg.z+Math.cos(pRot)*6,false);tg.rg={t:0,fx:tg.x,fz:tg.z,tx:q[0],tz:q[1]};tg.stun=3.4;}
     FT.push({x:px,y:4.6,z:pz,txt:'💥 Сломал!',t:1.3,c:'#ff4bff'});
-    G.st=0;stunT=1;
+    G.st=0;stunT=(!tg.remote&&!tg.prox)?7.4:4;
+    FT.push({x:px,y:3.6,z:pz,txt:'⏳ Выжившему 4 с на побег',t:1.6,c:'#ffd23f'});
   }else if(wall){G.st=0;stunT=1;FT.push({x:px,y:4.4,z:pz,txt:'Стена! Стан 1 с',t:1.3,c:'#ffd23f'});}
   else if(G.t<=0){G.st=0;stunT=1;FT.push({x:px,y:4.4,z:pz,txt:'Перегрев! Стан 1 с',t:1.3,c:'#ffd23f'});}
 }
@@ -3476,7 +3489,7 @@ var CHASE_THEMES={maklaby:{
    rng:[40,24,12,7], /* фаза 1 <40, фаза 2 <24, фаза 3 <12, фаза 4 <7 (Мимик совсем рядом) */
    vol:.8,key:'MM_B64'
 },glit:{
-  seg:{1:[0,23],2:[23,47],3:[47,71],4:[71,96]}, /* ГLИТ4ЕP (glit_chase.mp3, I_AM_GLLLLLLLLLIGHCCCC): 0:00-0:23 · 0:23-0:47 · 0:47-1:11 · 1:11-1:36 (последняя держится до ухода) */
+  seg:{1:[0,23],2:[23,45],3:[45,68],4:[68,184.1]}, /* ГLИТ4ЕP (audio/cool_update.mp3): 0:00-0:23 · 0:23-0:45 · 0:45-1:08 · 1:08-3:04 (последняя держится до ухода) */
   rng:[48,32,20,10], /* фаза1 <48, фаза2 <32, фаза3 <20, фаза4 <10 */
   vol:.8,key:'GL_B64'
 }};
