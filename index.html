@@ -1282,10 +1282,25 @@ function ttlSprite(list,x,z,by,o,ex){
   }});
 }
 var PZ=null,emPose=function(){return null;},emFace=function(){return null;},emRecv=function(){},frRx=function(){},frPk=function(){return 0;},frU=function(){return 0;};
+var PZPIV={hd:[0,4.3,0],tr:[0,3,0],ra:[-1.5,4,0],la:[1.5,4,0],rl:[-.5,2,0],ll:[.5,2,0],al:[0,3,0]};
+function pzXf1(t,pv,X,Y,Z){
+  var dx=X-pv[0],dy=Y-pv[1],dz=Z-pv[2],q=1+t[6],c,n,a,b;
+  dx*=q;dy*=q;dz*=q;
+  if(t[3]){c=Math.cos(t[3]);n=Math.sin(t[3]);a=dy*c-dz*n;b=dy*n+dz*c;dy=a;dz=b;}
+  if(t[4]){c=Math.cos(t[4]);n=Math.sin(t[4]);a=dx*c+dz*n;b=-dx*n+dz*c;dx=a;dz=b;}
+  if(t[5]){c=Math.cos(t[5]);n=Math.sin(t[5]);a=dx*c-dy*n;b=dx*n+dy*c;dx=a;dy=b;}
+  return [pv[0]+dx+t[0],pv[1]+dy+t[1],pv[2]+dz+t[2]];
+}
+function pzXf(TF,k,X,Y,Z){
+  var q=[X,Y,Z];
+  if(k&&TF[k])q=pzXf1(TF[k],PZPIV[k],q[0],q[1],q[2]);
+  if(TF.al)q=pzXf1(TF.al,PZPIV.al,q[0],q[1],q[2]);
+  return q;
+}
 function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
   if(o.sprite){ttlSprite(list,x,z,by||0,o,ex);return;}
   ex=ex||{};var hk=ex.hurt||0,HU=hk>.25,BN=0;if(HU)ex={iron:ex.iron,hurt:hk,cover:ex.cover,crouch:ex.crouch};if(ex.iron)o=ironOf(o);
-  by=by||0;var PZl=PZ;PZ=null;if(PZl&&PZl.by)by+=PZl.by;
+  by=by||0;var PZl=PZ;PZ=null;if(PZl&&PZl.by)by+=PZl.by;var TF=PZl&&PZl.tf||null,CUR='';
   var FM_AN=CFG.anim&&!CFG.pot&&!HU&&!ex.rk,FM_MV=Math.min(1,Math.abs(sw||0)*3),FM_ISW=FM_AN?(1-FM_MV)*Math.sin(T*1.8)*.07:0,FM_BR=FM_AN?(1-FM_MV)*Math.sin(T*2.2)*.03:0;if(PZl){FM_AN=false;FM_ISW=0;FM_BR=0;}
   var S=.6*(o.scale||1),c=Math.cos(rot),s=Math.sin(rot),sl=o.sleeve||o.shirt;
   function part(hw,hh,hd,pxx,pyy,cyo,ang,color,deco,czo){
@@ -1293,7 +1308,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     for(var i=0;i<8;i++){
       var lx=i&1?hw:-hw,ly=cyo+(i&2?hh:-hh),lz=czo+(i&4?hd:-hd);
       var ry=ly*Math.cos(ang)-lz*Math.sin(ang),rz=ly*Math.sin(ang)+lz*Math.cos(ang);
-      var yy=pyy+ry,zz=rz;if(BN){var dq=yy-2;yy=2+dq*Math.cos(BN)-zz*Math.sin(BN);zz=zz*Math.cos(BN)+dq*Math.sin(BN);}var X=(pxx+lx)*S,Y=yy*S+by,Z=zz*S;
+      var yy=pyy+ry,zz=rz;if(BN){var dq=yy-2;yy=2+dq*Math.cos(BN)-zz*Math.sin(BN);zz=zz*Math.cos(BN)+dq*Math.sin(BN);}var X0=pxx+lx,Y0=yy,Z0=zz;if(TF){var q0=pzXf(TF,CUR,X0,Y0,Z0);X0=q0[0];Y0=q0[1];Z0=q0[2];}var X=X0*S,Y=Y0*S+by,Z=Z0*S;
       co.push([x+X*c+Z*s,Y,z-X*s+Z*c]);
     }
     pushBox(list,co,color,false,deco);
@@ -1305,7 +1320,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     var tx=-uz*0+uy*sz,ty=uz*sx-ux*sz,tz=-uy*sx,co=[],i;
     for(i=0;i<8;i++){
       var e=i&4,p1=i&1?hw:-hw,p2=i&2?hw:-hw;
-      var X=((e?bx:ax)+sx*p1+tx*p2)*S,Y=((e?by2:ay)+ty*p2)*S+by,Z=((e?bz:az)+sz*p1+tz*p2)*S;
+      var X0=(e?bx:ax)+sx*p1+tx*p2,Y0=(e?by2:ay)+ty*p2,Z0=(e?bz:az)+sz*p1+tz*p2;if(TF){var q0=pzXf(TF,CUR,X0,Y0,Z0);X0=q0[0];Y0=q0[1];Z0=q0[2];}var X=X0*S,Y=Y0*S+by,Z=Z0*S;
       co.push([x+X*c+Z*s,Y,z-X*s+Z*c]);
     }
     pushBox(list,co,color,false,null);
@@ -1409,13 +1424,14 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     return;
   }
   if(HU)sw*=.5;
-  [[-.5,PZl&&PZl.rl!=null?-PZl.rl:sw],[.5,PZl&&PZl.ll!=null?-PZl.ll:-sw]].forEach(function(l){
+  [[-.5,PZl&&PZl.rl!=null?-PZl.rl+(PZl.kp?sw:0):sw],[.5,PZl&&PZl.ll!=null?-PZl.ll-(PZl.kp?sw:0):-sw]].forEach(function(l,li){CUR=li?'ll':'rl';
     if(o.shoe){
       part(.5,.8,.5,l[0],2,-.8,l[1],o.pants,o.patch?patchDeco:null);
       part(.52,.2,.56,l[0],2,-1.8,l[1],o.shoe,null,.04);
     }else part(.5,1,.5,l[0],2,-1,l[1],o.pants,o.rip?(o.rc?ripFor(o.rc,o.rt||'#17356e'):ripDeco):null);
   });
   if(FM_AN&&!o.shoe&&o.pants!=null){[[-.5,sw],[.5,-sw]].forEach(function(l){part(.53,.22,.56,l[0],2,-1.78,l[1],0x17181e,null,.05);});}
+  CUR='tr';
   if(ex.crouch&&o.vail){
     part(.07,.28,.1,-1.08,2.05,0,0,0x1b1b1b,null,.32);
     part(.13,.04,.12,-1.08,2.36,0,0,0xb9bec5,null,.32);
@@ -1436,6 +1452,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     part(1.0,.22,.62,0,3,1.12,0,0xb02a2a);
   }
   // правая рука
+  CUR='ra';
   var ar=-sw,bb=Math.sin(T*10)*.05;
   if(ex.up)ar=ex.up+Math.sin(T*16)*.18;
   else if(ex.aim)ar=-1.5;
@@ -1458,6 +1475,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     part(.21,.1,.23,-1.5,4,-2.7,ar,0xff8a1c);
   }
   // левая рука (или пила)
+  CUR='la';
   var la=sw+wave;if(ex.up)la=ex.up-Math.sin(T*16)*.18;if(FM_AN&&!ex.up)la-=FM_ISW;
   if(PZl&&PZl.la!=null){pzArm(1,PZl.la,PZl.lr||0);}else if(ex.cover){cvArm(1);}else if(o.saw){
     var a=-.7+la*.35;
@@ -1479,6 +1497,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     part(.06,.22,.05,1.5,4,-4.25,la,0xf1f3f7);
   }
   // голова
+  CUR='hd';
   part(.6,.6,.6,0,4.6,0,PZl&&PZl.hd!=null?PZl.hd:HU?hk*.3:(FM_AN?(Math.sin(T*1.3)*.04*(1-FM_MV)-Math.abs(sw||0)*.06):0),o.skin,PZl&&PZl.fc&&emFace(PZl.fc)?emFace(PZl.fc):HU?hurtFace(o):ex.scared?scaredDeco:(o.face?o.face:(o.mask?maskDeco:(o.stache?stacheEyes:eyes))));
   if(o.ears){
     [-1,1].forEach(function(sg){part(.16,.5,.12,sg*.42,4.6,.95,0,0x2a0709);});
@@ -1498,6 +1517,7 @@ function addChar0(list,x,z,rot,o,sw,wave,by,fl,ex){
     [-1,1].forEach(function(sg){part(.09,.3,.6,sg*.58,4.95,0,0,o.hair);});
   }
   if(o.hat)part(.66,.22,.66,0,5.42,0,0,0xe2e2e2,hatDeco);
+  CUR='tr';
   if(o.blanket){
     var nb=list.length;
     part(1.5,2.6,.08,0,3,.1,0,o.blanket,null,-.85);
@@ -5887,8 +5907,8 @@ function toast(t,d){try{mpMsg(t,d||3);}catch(e){}}
 
 /* ---------- стили ---------- */
 var st=document.createElement('style');
-st.textContent='#embtn,#chpickb{position:fixed;z-index:30;right:calc(24px + env(safe-area-inset-right,0px));width:52px;height:52px;border-radius:14px;border:2px solid #c6ff00;background:rgba(0,0,0,.6);color:#fff;font-size:26px;cursor:pointer;display:none;padding:0}'
-+'#embtn{bottom:calc(128px + env(safe-area-inset-bottom,0px))}#chpickb{bottom:calc(190px + env(safe-area-inset-bottom,0px))}'
+st.textContent='#embtn,#chpickb{position:fixed;z-index:30;right:calc(12px + env(safe-area-inset-right,0px));width:52px;height:52px;border-radius:14px;border:2px solid #c6ff00;background:rgba(0,0,0,.6);color:#fff;font-size:26px;cursor:pointer;display:none;padding:0}'
++'#embtn{top:calc(142px + env(safe-area-inset-top,0px))}#chpickb{top:calc(204px + env(safe-area-inset-top,0px))}.emp2{position:relative;height:110px;border:2px solid rgba(198,255,0,.6);border-radius:10px;background:rgba(198,255,0,.06);touch-action:none}.emp2 i{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#c6ff00;pointer-events:none}'
 +'.fxp{position:fixed;z-index:60;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(440px,92vw);max-height:62vh;overflow:auto;display:none;gap:8px;flex-wrap:wrap;padding:12px;border:2px solid #c6ff00;border-radius:14px;background:rgba(0,0,0,.94);font-family:"Trebuchet MS",Arial,sans-serif;color:#fff;touch-action:pan-y}.fxp.on{display:flex}'
 +'.fxb{font:700 14px "Trebuchet MS",Arial,sans-serif;color:#fff;background:rgba(198,255,0,.08);border:2px solid rgba(198,255,0,.6);border-radius:10px;padding:9px 12px;cursor:pointer}.fxb.on{background:#c6ff00;color:#000}.fxb.k{border-color:#ff6a6a}.fxb.sm{padding:6px 9px;font-size:13px}'
 +'.fxh{flex:1 0 100%;font-weight:900;font-size:13px;letter-spacing:.1em;color:#c6ff00}'
@@ -5933,6 +5953,8 @@ function emFace_(k){
 
 /* ---------- анимации ---------- */
 var PK2=['ra','rr','la','lr','hd','ll','rl','by'];
+var PKP=['hd','tr','ra','la','rl','ll','al'],PKA=['x','y','z','rx','ry','rz','s'];
+PKP.forEach(function(p){PKA.forEach(function(q){PK2.push(p+'_'+q);});});
 function K(d,p,f){return {d:d,p:p||{},f:f||'def'};}
 var BI={
  wave:{n:'Привет',e:'👋',fr:[K(350,{ra:2.9,rr:.3},'happy'),K(300,{ra:2.9,rr:.9}),K(300,{ra:2.9,rr:.3}),K(300,{ra:2.9,rr:.9}),K(300,{ra:2.9,rr:.3}),K(350,{},'happy')]},
@@ -5947,75 +5969,107 @@ var BI={
  cool:{n:'Круто',e:'😎',fr:[K(300,{ra:2.2,rr:.5,hd:-.1},'cool'),K(1200,{ra:2.2,rr:.5,hd:-.1},'cool'),K(300,{},'cool')]}
 };
 Object.keys(BI).forEach(function(k){BI[k].id=k;});
+function pkc(k,v){
+ if(typeof v!=='number'||!isFinite(v))return 0;
+ var m=k.split('_')[1],r;
+ if(k==='by')r=[-3,6];else if(m==='x'||m==='y'||m==='z')r=[-8,8];else if(m==='rx'||m==='ry'||m==='rz')r=[-6.3,6.3];else if(m==='s')r=[-.9,3];else r=[-4,4];
+ return Math.round(clamp(v,r[0],r[1])*1000)/1000;
+}
 function san(a){
  if(!a||!Array.isArray(a.fr))return null;
  var fr=[];
- a.fr.slice(0,24).forEach(function(f){if(!f)return;var p={};PK2.forEach(function(k){if(f.p&&f.p[k]!=null)p[k]=k==='by'?clamp(f.p[k],-1,2):clamp(f.p[k],-4,4);});fr.push({d:clamp(f.d||300,60,3000),p:p,f:FEMO[f.f]?f.f:'def'});});
- return fr.length?{n:String(a.n||'Анимация').slice(0,24),loop:!!a.loop,fr:fr}:null;
+ a.fr.slice(0,24).forEach(function(f){if(!f)return;var p={};PK2.forEach(function(k){if(f.p&&f.p[k]!=null){var v=pkc(k,f.p[k]);if(v!==0)p[k]=v;}});fr.push({d:clamp(f.d||300,60,3000),p:p,f:FEMO[f.f]?f.f:'def'});});
+ return fr.length?{n:String(a.n||'Анимация').slice(0,24),loop:!!a.loop,keep:!!a.keep,fr:fr}:null;
 }
 function fp(f){var o={};PK2.forEach(function(k){o[k]=(f&&f.p&&typeof f.p[k]==='number')?f.p[k]:0;});return o;}
+function mkTf(o){var tf=null;PKP.forEach(function(p){var a=[],nz=0;PKA.forEach(function(q){var v=o[p+'_'+q]||0;a.push(v);if(v)nz=1;});if(nz){if(!tf)tf={};tf[p]=a;}});return tf;}
 function evalAnim(a,ms){
  var F=a.fr,n=F.length,tot=0,i,acc=0;
  for(i=0;i<n;i++)tot+=F[i].d;
  if(!tot)return null;
- if(ms>=tot){if(!a.loop)return null;ms%=tot;}
+ if(ms>=tot){if(a.loop)ms%=tot;else if(a.keep)ms=tot-1;else return null;}
  for(i=0;i<n;i++){if(ms<acc+F[i].d)break;acc+=F[i].d;}
  if(i>=n)i=n-1;
  var pv=i>0?F[i-1]:(a.loop?F[n-1]:null),cu=fp(F[i]),pp=fp(pv),k=clamp((ms-acc)/F[i].d,0,1),e=k*k*(3-2*k),o={};
  PK2.forEach(function(q){o[q]=pp[q]+(cu[q]-pp[q])*e;});
  var f=k<.5?(pv?pv.f:'def'):F[i].f;
  o.fc=(f&&f!=='def')?f:null;
+ o.kp=a.keep?1:0;o.tf=mkTf(o);
  return o;
 }
-var ME=null,ED={on:false,part:'ra',cur:{},face:'def',fr:[],sel:-1,dur:400,loop:false,name:''},ANIMS=jp(lsG('ks_anims'),[]);
+var ME=null,ED={on:false,part:'ra',cur:{},face:'def',fr:[],sel:-1,dur:400,loop:false,keep:false,name:'',pads:[]},ANIMS=jp(lsG('ks_anims'),[]);
 if(!Array.isArray(ANIMS))ANIMS=[];
+ANIMS=ANIMS.map(san).filter(Boolean);
 PK2.forEach(function(k){ED.cur[k]=0;});
 function emPose_(R){
  var E=R?R.em:ME;
  if(E){
+  if(R&&E.a.keep&&performance.now()-(E.ref||E.t0)>15000){R.em=null;return null;}
   var r=evalAnim(E.a,performance.now()-E.t0);
   if(r)return r;
   if(R)R.em=null;else ME=null;
  }
- if(!R&&ED.on){var o={};PK2.forEach(function(k){o[k]=ED.cur[k];});o.fc=ED.face==='def'?null:ED.face;return o;}
+ if(!R&&ED.on){var o={};PK2.forEach(function(k){o[k]=ED.cur[k];});o.fc=ED.face==='def'?null:ED.face;o.kp=0;o.tf=mkTf(o);return o;}
  return null;
 }
 function emRecv_(R,m){
  if(!R)return;
  if(m.id==='stop'){R.em=null;return;}
+ if(m.id==='keep'){if(R.em)R.em.ref=performance.now();return;}
  var a=(m.id&&BI[m.id])?BI[m.id]:san(m.a);
- if(a)R.em={a:a,t0:performance.now()};
+ if(a)R.em={a:a,t0:performance.now(),ref:performance.now()};
 }
 function emPlay(a){
  a=san(a)||a;if(!a)return;
  ME={a:a,t0:performance.now()};
  try{third=true;cbtn.textContent='🧍 3-е лицо';}catch(e){}
- if(net.on){if(a.id&&BI[a.id])send({t:'em',id:a.id});else send({t:'em',a:san(a)});}
+ if(net.on)send({t:'em',a:a});
 }
 function emStop(){if(ME){ME=null;if(net.on)send({t:'em',id:'stop'});}}
-var lx=0,lz=0;
+var lx=0,lz=0,kpS=0,lw=null;
 setInterval(function(){
- if(ME&&!ED.on&&(Math.abs(px-lx)>.04||Math.abs(pz-lz)>.04))emStop();
- lx=px;lz=pz;
+ var kp=ME&&ME.a&&ME.a.keep&&!ED.on;
+ if(ME&&!ED.on&&!kp&&(Math.abs(px-lx)>.04||Math.abs(pz-lz)>.04))emStop();
+ if(kp){
+  if(world!==lw||php<=0)emStop();
+  else if(net.on&&performance.now()-kpS>4000){kpS=performance.now();send({t:'em',id:'keep'});}
+ }
+ lw=world;lx=px;lz=pz;
 },120);
+/* эмоцию «не выключать при ходьбе» отключает кнопка эмоций */
+function kpCancel(){if(ME&&!ED.on&&ME.a&&ME.a.keep)emStop();}
 emPose=emPose_;emRecv=emRecv_;emFace=emFace_;
 
 /* ---------- кнопки эмоций и панель ---------- */
-var embtn=el('button',null,'😀',function(){togPanel('empk');});embtn.id='embtn';embtn.type='button';document.body.appendChild(embtn);
+var embtn=el('button',null,'😀',function(){if(ME&&ME.a&&ME.a.keep&&!ED.on){emStop();embtn.textContent='😀';return;}togPanel('empk');});embtn.id='embtn';embtn.type='button';document.body.appendChild(embtn);
 var chb=el('button',null,'🎭',function(){togPanel('chpk');});chb.id='chpickb';chb.type='button';document.body.appendChild(chb);
 var empk=el('div','fxp');empk.id='empk';document.body.appendChild(empk);
+setTimeout(function(){try{gLoad();}catch(e){}},1500);
 var chpk=el('div','fxp');chpk.id='chpk';document.body.appendChild(chpk);
 function togPanel(id){
  var p=G(id),on=!p.classList.contains('on');
  empk.classList.remove('on');chpk.classList.remove('on');
  if(on){if(id==='empk')buildEmPk();else buildChPk();p.classList.add('on');}
 }
+var GANIMS=[],gLoaded=0;
+function gLoad(){
+ if(gLoaded)return;gLoaded=1;
+ try{fetch('emotes.json?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+  if(!j){gLoaded=0;return;}
+  var arr=Array.isArray(j)?j:(Array.isArray(j.anims)?j.anims:(j.fr?[j]:[]));
+  GANIMS=[];arr.forEach(function(x){var a=san(x);if(a)GANIMS.push(a);});
+  if(empk.classList.contains('on'))buildEmPk();
+ }).catch(function(){gLoaded=0;});}catch(e){gLoaded=0;}
+}
 function buildEmPk(){
+ gLoad();
  empk.innerHTML='';empk.appendChild(el('div','fxh','ЭМОЦИИ'));
- Object.keys(BI).forEach(function(k){empk.appendChild(el('button','fxb',BI[k].e+' '+BI[k].n,function(){empk.classList.remove('on');emPlay(BI[k]);}));});
- if(ANIMS.length){empk.appendChild(el('div','fxh','МОИ И ИМПОРТИРОВАННЫЕ'));
-  ANIMS.forEach(function(a){empk.appendChild(el('button','fxb','🎬 '+a.n,function(){empk.classList.remove('on');emPlay(a);}));});}
- empk.appendChild(el('button','fxb sm','📥 Импорт анимации',importAnim));
+ function add(a,ic){empk.appendChild(el('button','fxb',ic+' '+a.n+(a.keep?' 🚶':''),function(){empk.classList.remove('on');emPlay(a);}));}
+ Object.keys(BI).forEach(function(k){add(BI[k],BI[k].e);});
+ if(GANIMS.length){empk.appendChild(el('div','fxh','ОБЩИЕ ЭМОЦИИ'));GANIMS.forEach(function(a){add(a,'🎬');});}
+ if(ANIMS.length){empk.appendChild(el('div','fxh',adminOn?'МОИ И ИМПОРТИРОВАННЫЕ':'СОХРАНЁННЫЕ'));ANIMS.forEach(function(a){add(a,'🎬');});}
+ if(ME)empk.appendChild(el('button','fxb sm k','⏹ Остановить',function(){empk.classList.remove('on');emStop();}));
+ if(adminOn)empk.appendChild(el('button','fxb sm','📥 Импорт анимации',importAnim));
  empk.appendChild(el('button','fxb sm','✕',function(){empk.classList.remove('on');}));
 }
 var PKON=false;
@@ -6032,45 +6086,69 @@ setInterval(function(){
  var gv=false;try{gv=getComputedStyle(G('game')).display!=='none';}catch(e){}
  var show=gv&&!modalOn&&!tp;
  embtn.style.display=show?'block':'none';
+ embtn.textContent=(ME&&ME.a&&ME.a.keep&&!ED.on)?'⏹':'😀';
  chb.style.display=(show&&PKON)?'block':'none';
  if(!show){empk.classList.remove('on');chpk.classList.remove('on');}
 },300);
 
 /* ---------- редактор анимаций ---------- */
 var PARTS={
+ al:{t:'Всё тело',s:[['by','Прыжок / присед',-.5,1.6]]},
+ hd:{t:'Голова',s:[['hd','Наклон головы',-.8,.8]]},
+ tr:{t:'Туловище',s:[]},
  ra:{t:'Правая рука',s:[['ra','Вперёд / вверх',-1.6,3.14],['rr','В сторону',-1,3.14]],pad:['rr','ra']},
  la:{t:'Левая рука',s:[['la','Вперёд / вверх',-1.6,3.14],['lr','В сторону',-1,3.14]],pad:['lr','la']},
- hd:{t:'Голова',s:[['hd','Наклон головы',-.8,.8]]},
  rl:{t:'Правая нога',s:[['rl','Вперёд / назад',-1.2,1.2]]},
- ll:{t:'Левая нога',s:[['ll','Вперёд / назад',-1.2,1.2]]},
- by:{t:'Тело',s:[['by','Прыжок / присед',-.5,1.6]]}
+ ll:{t:'Левая нога',s:[['ll','Вперёд / назад',-1.2,1.2]]}
 };
+var PLAB={x:['↔ Двигать вбок',-6,6,.05],y:['↕ Двигать вверх / вниз',-6,6,.05],z:['⇵ Двигать вперёд / назад',-6,6,.05],rx:['⟲ Крутить: вперёд / назад',-3.14,3.14,.02],ry:['⟲ Крутить: влево / вправо',-3.14,3.14,.02],rz:['⟲ Крутить: набок',-3.14,3.14,.02],s:['⤢ Размер части',-.9,2.5,.05]};
 var emed=el('div');emed.id='emed';document.body.appendChild(emed);
 ['touchstart','touchmove','pointerdown','wheel'].forEach(function(ev){emed.addEventListener(ev,function(e){e.stopPropagation();},{passive:true});});
 emed.innerHTML='<div class="emrow" style="justify-content:space-between;align-items:center"><b style="color:#c6ff00;letter-spacing:.08em">🎬 РЕДАКТОР АНИМАЦИЙ</b><button class="fxb sm" id="edx" type="button">✕</button></div>'
-+'<div class="emrow" id="edparts"></div><div id="empad"><i></i></div><div id="edsl"></div>'
++'<div class="emrow" id="edparts"></div><div id="empad"><i></i></div><div class="emrow" id="edpads"></div><div id="edsl"></div>'
 +'<div class="emrow" id="edfaces"></div>'
 +'<label><span>Длительность кадра</span><span id="eddv"></span></label><input type="range" id="eddur" min="80" max="2000" step="20">'
 +'<div class="emrow" id="edfb"></div><div class="emrow" id="edfr"></div>'
 +'<input class="emin" id="ednm" maxlength="24" placeholder="Название анимации">'
 +'<div class="emrow" id="edact"></div><div class="fxh" style="margin-top:4px">СОХРАНЁННЫЕ</div><div id="edsv"></div>';
+function edKeys(){var P=PARTS[ED.part],ks=[];P.s.forEach(function(s){ks.push([s[0],s[2],s[3]]);});PKA.forEach(function(q){ks.push([ED.part+'_'+q,PLAB[q][1],PLAB[q][2]]);});return ks;}
 function edSync(){
  var P=PARTS[ED.part],pd=G('empad');
  pd.style.display=P.pad?'block':'none';
  if(P.pad){var d=pd.firstChild;d.style.left=((ED.cur[P.pad[0]]+1)/4.14*100)+'%';d.style.top=((3.14-ED.cur[P.pad[1]])/4.74*100)+'%';}
- P.s.forEach(function(s){var r=G('edr_'+s[0]);if(r){r.value=ED.cur[s[0]];G('edv_'+s[0]).textContent=ED.cur[s[0]].toFixed(2);}});
+ edKeys().forEach(function(k){var r=G('edr_'+k[0]);if(r){r.value=ED.cur[k[0]];G('edv_'+k[0]).textContent=(+ED.cur[k[0]]).toFixed(2);}});
+ ED.pads.forEach(function(f){f();});
  G('eddur').value=ED.dur;G('eddv').textContent=ED.dur+' мс';
 }
+function mkPad(title,kx,ky,xr,yr){
+ var w=el('div');w.style.cssText='flex:1 1 44%;min-width:0';
+ w.appendChild(el('div','frh',title));
+ var pd=el('div','emp2'),dt=document.createElement('i'),dn=false;pd.appendChild(dt);w.appendChild(pd);
+ function sy(){dt.style.left=((ED.cur[kx]-xr[0])/(xr[1]-xr[0])*100)+'%';dt.style.top=((yr[1]-ED.cur[ky])/(yr[1]-yr[0])*100)+'%';}
+ function mv(e){var r=pd.getBoundingClientRect(),x=clamp((e.clientX-r.left)/r.width,0,1),y=clamp((e.clientY-r.top)/r.height,0,1);ED.cur[kx]=Math.round((xr[0]+x*(xr[1]-xr[0]))*100)/100;ED.cur[ky]=Math.round((yr[1]-y*(yr[1]-yr[0]))*100)/100;edSync();}
+ pd.addEventListener('pointerdown',function(e){dn=true;try{pd.setPointerCapture(e.pointerId);}catch(x){}mv(e);});
+ pd.addEventListener('pointermove',function(e){if(dn)mv(e);});
+ pd.addEventListener('pointerup',function(){dn=false;});pd.addEventListener('pointercancel',function(){dn=false;});
+ ED.pads.push(sy);return w;
+}
+function edLoad(f){PK2.forEach(function(k){ED.cur[k]=(f&&f.p&&f.p[k])||0;});}
 function edRender(){
  var pr=G('edparts');pr.innerHTML='';
  Object.keys(PARTS).forEach(function(k){pr.appendChild(el('button','fxb sm'+(ED.part===k?' on':''),PARTS[k].t,function(){ED.part=k;edRender();}));});
+ var pp=G('edpads');pp.innerHTML='';ED.pads=[];
+ pp.appendChild(mkPad('Тащи часть (вбок / вверх)',ED.part+'_x',ED.part+'_y',[-6,6],[-6,6]));
+ pp.appendChild(mkPad('Крути часть',ED.part+'_ry',ED.part+'_rx',[-3.14,3.14],[-3.14,3.14]));
  var sl=G('edsl');sl.innerHTML='';
- PARTS[ED.part].s.forEach(function(s){
-  var l=el('label');l.appendChild(el('span',null,s[1]));var v=el('span');v.id='edv_'+s[0];l.appendChild(v);
-  var r=document.createElement('input');r.type='range';r.id='edr_'+s[0];r.min=s[2];r.max=s[3];r.step=.01;
-  r.addEventListener('input',function(){ED.cur[s[0]]=+r.value;edSync();});
+ function addSl(key,label,mn,mx,stp){
+  var l=el('label');l.appendChild(el('span',null,label));var v=el('span');v.id='edv_'+key;l.appendChild(v);
+  var r=document.createElement('input');r.type='range';r.id='edr_'+key;r.min=mn;r.max=mx;r.step=stp;
+  r.addEventListener('input',function(){ED.cur[key]=+r.value;edSync();});
   sl.appendChild(l);sl.appendChild(r);
- });
+ }
+ PARTS[ED.part].s.forEach(function(s){addSl(s[0],s[1],s[2],s[3],.01);});
+ PKA.forEach(function(q){addSl(ED.part+'_'+q,PLAB[q][0],PLAB[q][1],PLAB[q][2],PLAB[q][3]);});
+ sl.appendChild(el('button','fxb sm k','↺ Сбросить эту часть',function(){
+  PARTS[ED.part].s.forEach(function(s){ED.cur[s[0]]=0;});PKA.forEach(function(q){ED.cur[ED.part+'_'+q]=0;});edRender();}));
  var fc=G('edfaces');fc.innerHTML='';
  Object.keys(FEMO).forEach(function(k){fc.appendChild(el('button','fxb sm'+(ED.face===k?' on':''),FEMO[k],function(){ED.face=k;edRender();}));});
  var fb=G('edfb');fb.innerHTML='';
@@ -6078,22 +6156,25 @@ function edRender(){
  fb.appendChild(el('button','fxb sm','✎ Обновить',function(){if(ED.sel>=0){ED.fr[ED.sel]=mkFr();edRender();}}));
  fb.appendChild(el('button','fxb sm k','🗑',function(){if(ED.sel>=0){ED.fr.splice(ED.sel,1);ED.sel=Math.min(ED.sel,ED.fr.length-1);edRender();}}));
  fb.appendChild(el('button','fxb sm'+(ED.loop?' on':''),'🔁 Цикл',function(){ED.loop=!ED.loop;edRender();}));
+ fb.appendChild(el('button','fxb sm'+(ED.keep?' on':''),'🚶 Не выключать при ходьбе',function(){ED.keep=!ED.keep;edRender();}));
+ if(ED.keep)fb.appendChild(el('div','frh','Эмоция не пропадает при ходьбе и держится, пока не нажать кнопку эмоций (она станет ⏹).'));
  var fr=G('edfr');fr.innerHTML='';
  ED.fr.forEach(function(f,i){fr.appendChild(el('button','fxb sm'+(ED.sel===i?' on':''),(i+1)+' '+FEMO[f.f],function(){
-  ED.sel=i;PK2.forEach(function(k){ED.cur[k]=(f.p&&f.p[k])||0;});ED.face=f.f;ED.dur=f.d;edRender();}));});
+  ED.sel=i;edLoad(f);ED.face=f.f;ED.dur=f.d;edRender();}));});
  if(!ED.fr.length)fr.appendChild(el('div','frh','Поставь позу и нажми «➕ Кадр». Кадры проигрываются по порядку.'));
  var ac=G('edact');ac.innerHTML='';
- ac.appendChild(el('button','fxb sm','▶ Просмотр',function(){if(ED.fr.length)ME={a:{n:'',loop:ED.loop,fr:ED.fr},t0:performance.now()};}));
+ ac.appendChild(el('button','fxb sm','▶ Просмотр',function(){if(ED.fr.length)ME={a:{n:'',loop:ED.loop,keep:ED.keep,fr:ED.fr},t0:performance.now()};}));
  ac.appendChild(el('button','fxb sm','■',function(){ME=null;}));
  ac.appendChild(el('button','fxb sm','💾 Сохранить',edSave));
- ac.appendChild(el('button','fxb sm','📤 Экспорт',function(){var a=curAnim();if(a)exportAnim(a);}));
+ ac.appendChild(el('button','fxb sm','📤 В файл',function(){var a=curAnim();if(a)exportAnim(a);}));
+ ac.appendChild(el('button','fxb sm','📤 Все → emotes.json',exportAll));
  ac.appendChild(el('button','fxb sm','📥 Импорт',importAnim));
- ac.appendChild(el('button','fxb sm k','Сброс',function(){ED.fr=[];ED.sel=-1;ED.face='def';PK2.forEach(function(k){ED.cur[k]=0;});edRender();}));
+ ac.appendChild(el('button','fxb sm k','Сброс',function(){ED.fr=[];ED.sel=-1;ED.face='def';ED.keep=false;ED.loop=false;PK2.forEach(function(k){ED.cur[k]=0;});edRender();}));
  var sv=G('edsv');sv.innerHTML='';
  ANIMS.forEach(function(a,i){
-  var r=el('div','frr');r.appendChild(el('div','n',a.n));
+  var r=el('div','frr');r.appendChild(el('div','n',a.n+(a.keep?' 🚶':'')));
   r.appendChild(el('button','frb','▶',function(){emPlay(a);}));
-  r.appendChild(el('button','frb gr','✎',function(){ED.fr=JSON.parse(JSON.stringify(a.fr));ED.loop=!!a.loop;ED.name=a.n;G('ednm').value=a.n;ED.sel=0;ED.face=a.fr[0].f;PK2.forEach(function(k){ED.cur[k]=(a.fr[0].p&&a.fr[0].p[k])||0;});edRender();}));
+  r.appendChild(el('button','frb gr','✎',function(){ED.fr=JSON.parse(JSON.stringify(a.fr));ED.loop=!!a.loop;ED.keep=!!a.keep;ED.name=a.n;G('ednm').value=a.n;ED.sel=0;ED.face=a.fr[0].f;edLoad(a.fr[0]);ED.dur=a.fr[0].d;edRender();}));
   r.appendChild(el('button','frb gr','📤',function(){exportAnim(a);}));
   r.appendChild(el('button','frb gr','🗑',function(){ANIMS.splice(i,1);lsS('ks_anims',JSON.stringify(ANIMS));edRender();}));
   sv.appendChild(r);
@@ -6101,11 +6182,11 @@ function edRender(){
  if(!ANIMS.length)sv.appendChild(el('div','frh','Пока пусто.'));
  edSync();
 }
-function mkFr(){var p={};PK2.forEach(function(k){p[k]=Math.round(ED.cur[k]*100)/100;});return {d:ED.dur,p:p,f:ED.face};}
+function mkFr(){var p={};PK2.forEach(function(k){var v=Math.round(ED.cur[k]*100)/100;if(v!==0)p[k]=v;});return {d:ED.dur,p:p,f:ED.face};}
 function curAnim(){
  if(!ED.fr.length){toast('Сначала добавь хотя бы один кадр');return null;}
  var n=G('ednm').value.trim()||'Анимация';
- return san({n:n,loop:ED.loop,fr:ED.fr});
+ return san({n:n,loop:ED.loop,keep:ED.keep,fr:ED.fr});
 }
 function edSave(){
  var a=curAnim();if(!a)return;
@@ -6114,24 +6195,33 @@ function edSave(){
  if(i>=0)ANIMS[i]=a;else ANIMS.push(a);
  lsS('ks_anims',JSON.stringify(ANIMS));toast('💾 Сохранено: '+a.n);edRender();
 }
-function exportAnim(a){
- var data=JSON.stringify({fillmore_anim:1,n:a.n,loop:!!a.loop,fr:a.fr}),name=(a.n||'anim').replace(/[^\wА-Яа-яЁё\- ]/g,'_')+'.fmanim.json';
+function saveFile(data,name,title){
+ function dl(){
+  var u=URL.createObjectURL(new Blob([data],{type:'application/json'})),l=document.createElement('a');
+  l.href=u;l.download=name;document.body.appendChild(l);l.click();setTimeout(function(){document.body.removeChild(l);URL.revokeObjectURL(u);},500);
+  toast('📤 Файл скачан: '+name);
+ }
  try{
   var f=new File([data],name,{type:'application/json'});
-  if(navigator.canShare&&navigator.canShare({files:[f]})&&/Android|iPhone|iPad/i.test(navigator.userAgent)){navigator.share({files:[f],title:a.n}).catch(function(){});return;}
+  if(navigator.canShare&&navigator.canShare({files:[f]})&&/Android|iPhone|iPad/i.test(navigator.userAgent)){navigator.share({files:[f],title:title}).catch(function(er){if(!er||er.name!=='AbortError')dl();});return;}
  }catch(e){}
- var u=URL.createObjectURL(new Blob([data],{type:'application/json'})),l=document.createElement('a');
- l.href=u;l.download=name;document.body.appendChild(l);l.click();setTimeout(function(){document.body.removeChild(l);URL.revokeObjectURL(u);},500);
- toast('📤 Файл анимации скачан');
+ dl();
+}
+function exportAnim(a){
+ saveFile(JSON.stringify({fillmore_anim:1,n:a.n,loop:!!a.loop,keep:!!a.keep,fr:a.fr}),(a.n||'anim').replace(/[^\wА-Яа-яЁё\- ]/g,'_')+'.fmanim.json',a.n);
+}
+function exportAll(){
+ if(!ANIMS.length){toast('Нет сохранённых эмоций');return;}
+ saveFile(JSON.stringify({fillmore_anims:1,anims:ANIMS.map(function(a){return {n:a.n,loop:!!a.loop,keep:!!a.keep,fr:a.fr};})}),'emotes.json','emotes.json');
 }
 var fin=document.createElement('input');fin.type='file';fin.accept='.json,.fmanim,application/json';fin.multiple=true;fin.style.display='none';document.body.appendChild(fin);
-function importAnim(){fin.value='';fin.click();}
+function importAnim(){if(!adminOn){toast('Создавать и импортировать эмоции может только админ');return;}fin.value='';fin.click();}
 fin.addEventListener('change',function(){
  var n=0,fs=Array.prototype.slice.call(fin.files||[]),left=fs.length;
  if(!left)return;
  fs.forEach(function(f){var r=new FileReader();r.onload=function(){
-   var a=san(jp(r.result,null));
-   if(a){a.id='u'+Date.now().toString(36)+n;n++;ANIMS.push(a);}
+   var j=jp(r.result,null),arr=Array.isArray(j)?j:(j&&Array.isArray(j.anims)?j.anims:[j]);
+   arr.forEach(function(x){var a=san(x);if(a){a.id='u'+Date.now().toString(36)+n;n++;ANIMS.push(a);}});
    if(--left===0){lsS('ks_anims',JSON.stringify(ANIMS));toast(n?'📥 Импортировано: '+n:'Не удалось прочитать файл',4);if(G('emed').classList.contains('on'))edRender();if(empk.classList.contains('on'))buildEmPk();}
   };r.readAsText(f);});
 });
@@ -6160,7 +6250,8 @@ function closeEd(){ED.on=false;ME=null;modalOn=false;emed.classList.remove('on')
  function sec(t){var s=el('div','admsec',t);p.insertBefore(s,note);}
  function btn(t,cls,fn){var b=el('button','admb2'+(cls?' '+cls:''),t,fn);b.type='button';return b;}
  sec('🎬 ЭМОЦИИ И АНИМАЦИИ');
- var g=el('div','admgrid');g.appendChild(btn('✏️ Редактор анимаций','',openEd));g.appendChild(btn('📥 Импорт анимации','',importAnim));p.insertBefore(g,note);
+ var g=el('div','admgrid');g.appendChild(btn('✏️ Редактор анимаций','',openEd));g.appendChild(btn('📥 Импорт анимации','',importAnim));g.appendChild(btn('📤 Все эмоции → emotes.json','',exportAll));p.insertBefore(g,note);
+ var t1=el('div',null,'Эмоции может создавать только админ. Чтобы они появились у ВСЕХ игроков: нажми «Все эмоции → emotes.json» и положи файл рядом с index.html.');t1.style.cssText='font-size:12px;opacity:.65';p.insertBefore(t1,note);
  sec('🎭 ВЫБОР ПЕРСОНАЖА ИГРОКАМИ');
  var g2=el('div','admgrid'),tb=btn('','',function(){
   if(net.nw&&!nwHost){toast('Включать может только создатель комнаты',3);return;}
