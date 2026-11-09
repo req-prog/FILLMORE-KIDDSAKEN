@@ -3359,7 +3359,7 @@ function mpClose(){
 }
 /* ---------- Supabase: комнаты по коду (сигналинг) + запасной релей ---------- */
 var SB_URL='https://qxguizijvutacxvfkovc.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4Z3VpemlqdnV0YWN4dmZrb3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyMjkzNzIsImV4cCI6MjEwODgwNTM3Mn0.u7SUyx_HnmZYxItnz_ByBA7FP8jDqNvy20jrQnwsgMw';  /* <-- ВСТАВЬ: Project URL и anon/publishable key из Supabase (Project Settings -> API) */
-var sb=null,sbCh=null,sbHost=false,sbBusy=false,sbTimer=0,sbKA=0,sbHello=0,sbLastRx=0;
+var sb=null,sbCh=null,sbHost=false,sbBusy=false,sbTimer=0,sbKA=0,sbHello=0,sbLastRx=0;var nwWd=0,nwWdBad=0;
 function sbClient(){
   if(sb)return sb;
   if(!SB_URL||!SB_KEY){mpStatus('Не заданы SB_URL и SB_KEY (в index.html, поиск по SB_URL).');return null;}
@@ -3369,7 +3369,7 @@ function sbClient(){
 }
 function sbSend(ev,p){try{if(sbCh)sbCh.send({type:'broadcast',event:ev,payload:p});}catch(e){}}
 function sbLeave(){
-  clearTimeout(sbTimer);clearInterval(sbKA);clearInterval(sbHello);
+  clearTimeout(sbTimer);clearInterval(sbKA);clearInterval(sbHello);clearInterval(nwWd);nwWdBad=0;
   try{if(sbCh&&sb)sb.removeChannel(sbCh);}catch(e){}
   sbCh=null;net.relay=false;
 }
@@ -3564,7 +3564,15 @@ $('mph').addEventListener('click',function(){
   nwHost=true;sbHost=true;mpMode='host';
   $('mpa').style.display='flex';$('mpjoin').style.display='none';$('mpbig').style.display='block';
   var code=mpRoomCode();nwCode=code;$('mpbig').textContent=code;mpStatus('Создаём комнату…');
-  if(!nwOpen(code,function(){applyMap('isle',false);nwHid=MYID;nwRoomEnter('room');}))$('mpbig').textContent='';});
+  if(!nwOpen(code,function(){applyMap('isle',false);nwHid=MYID;nwRoomEnter('room');
+    clearInterval(nwWd);nwWdBad=0;
+    nwWd=setInterval(function(){
+      if(!nwHost||!nwCh){clearInterval(nwWd);return;}
+      var st=nwCh.state;
+      if(st==='closed'||st==='errored'){if(++nwWdBad>=2){nwWdBad=0;try{if(sb)sb.removeChannel(nwCh);}catch(e){}nwOpen(nwCode,function(){});}}
+      else nwWdBad=0;
+    },3000);
+  }))$('mpbig').textContent='';});
 $('mpj').addEventListener('click',function(){
   nwHost=false;sbHost=false;mpMode='join';
   $('mpa').style.display='flex';$('mpbig').style.display='none';$('mpjoin').style.display='flex';mpStatus('Введи код комнаты и нажми «Войти».');});
@@ -3573,7 +3581,7 @@ $('mpgo').addEventListener('click',function(){
   if(code.length<5){mpStatus('Код — 5 символов.');return;}
   nwCode=code;mpStatus('Подключаемся…');
   nwOpen(code,function(){var n=0;
-    function hi(){if(net.on)return;if(++n>6){clearInterval(sbHello);mpStatus('Комната не отвечает. Проверь код: админ уже должен создать комнату.');return;}sbSend('g',{t:'hi',f:MYID});}
+    function hi(){if(net.on)return;if(++n>10){clearInterval(sbHello);mpStatus('Комната не отвечает. Проверь код: админ уже должен создать комнату.');return;}sbSend('g',{t:'hi',f:MYID});}
     clearInterval(sbHello);hi();sbHello=setInterval(hi,2000);});});
 
 function rpO(R){return skO(R.ch,skGet(R.ch,R.sk||'def'),T);}
@@ -6719,7 +6727,7 @@ function frJoin(code){
  nwHost=false;sbHost=false;mpMode='join';nwCode=code;
  toast('Подключаемся к другу…',3);
  if(!nwOpen(code,function(){var n=0;
-  function hi(){if(net.on)return;if(++n>6){clearInterval(sbHello);toast('Комната не отвечает — возможно, игра уже началась',4);return;}sbSend('g',{t:'hi',f:MYID});}
+  function hi(){if(net.on)return;if(++n>10){clearInterval(sbHello);toast('Комната не отвечает — возможно, игра уже началась',4);return;}sbSend('g',{t:'hi',f:MYID});}
   clearInterval(sbHello);hi();sbHello=setInterval(hi,2000);}))toast('Нет связи с сервером',3);
 }
 function setOn(){try{return setEl&&setEl.classList.contains('on');}catch(e){return false;}}
