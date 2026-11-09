@@ -3364,7 +3364,7 @@ function sbClient(){
   if(sb)return sb;
   if(!SB_URL||!SB_KEY){mpStatus('Не заданы SB_URL и SB_KEY (в index.html, поиск по SB_URL).');return null;}
   if(!window.supabase){mpStatus('Не загрузилась библиотека Supabase — нужен интернет.');return null;}
-  sb=window.supabase.createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:40},heartbeatIntervalMs:15000,timeout:15000,reconnectAfterMs:function(n){return Math.min(500*n,4000);}}});
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:40}}});
   return sb;
 }
 function sbSend(ev,p){try{if(sbCh)sbCh.send({type:'broadcast',event:ev,payload:p});}catch(e){}}
@@ -3382,7 +3382,7 @@ function sbOpen(code,onReady){
     .on('broadcast',{event:'k'},function(){sbLastRx=performance.now();})
     .subscribe(function(st){
       if(st==='SUBSCRIBED')onReady();
-      else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')mpStatus('Нет связи с Supabase. Проверь интернет, URL и ключ.');
+      else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED')mpStatus('Нет связи с Supabase ('+st+'). Проверь интернет, URL и ключ.');
     });
   return true;
 }
@@ -3506,7 +3506,7 @@ function nwOpen(code,cb){
   try{if(nwCh)c.removeChannel(nwCh);}catch(e){}
   nwCh=c.channel('ks2-'+code,{config:{broadcast:{self:false}}});sbCh=nwCh;
   nwCh.on('broadcast',{event:'g'},function(p){onNet(p.payload);}).subscribe(function(st){
-    if(st==='SUBSCRIBED')cb();else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')mpStatus('Нет связи с Supabase. Проверь интернет, URL и ключ.');});
+    if(st==='SUBSCRIBED')cb();else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED')mpStatus('Нет связи с Supabase ('+st+'). Проверь интернет, URL и ключ.');});
   return true;}
 var nwPhase='';   /* '' | 'room' (список игроков) | 'gather' (все идут в зону игры) | 'game' (раунд) */
 function nwInZone(){return world===LOBBY&&!tp&&lobZone==='in1'&&Math.hypot(px,pz+23)<2.6;}
